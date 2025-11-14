@@ -30,6 +30,7 @@ public class UpdateChecker implements Listener {
     public UpdateChecker(PrimeAssistant plugin) {
         this.plugin = plugin;
         this.pluginVersion = plugin.getDescription().getVersion();
+        Bukkit.getPluginManager().registerEvents(this, plugin);
     }
 
     public boolean hasUpdateAvailable() {
@@ -78,7 +79,6 @@ public class UpdateChecker implements Listener {
             Bukkit.getScheduler().runTask(plugin, () -> {
                 plugin.getLogger().info("An update for PrimeAssistant (v" + getLatestVersion() + ") is available at:");
                 plugin.getLogger().info(RELEASES_URL);
-                Bukkit.getPluginManager().registerEvents(this, plugin);
             });
         });
     }
@@ -110,8 +110,12 @@ public class UpdateChecker implements Listener {
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onJoin(PlayerJoinEvent e) {
+        if (!updateAvailable) {
+            return;
+        }
+
         Player player = e.getPlayer();
-        if (player.hasPermission("primeassistant.updates")) {
+        if (player.hasPermission("primeassistant.updatenotify")) {
             player.sendMessage(ChatColor.translateAlternateColorCodes('&',
                     "&bAn update for &fPrimeAssistant &e(&fv" + getLatestVersion() + "&e) is available at:"));
             player.sendMessage(ChatColor.translateAlternateColorCodes('&', "&e" + RELEASES_URL));
