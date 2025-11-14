@@ -1,8 +1,13 @@
 name: PrimeAssistant
-version: '1.0.0'
+version: ${version}
 main: me.optimusprimerdc.primeAssistant.PrimeAssistant
 api-version: '1.21'
 load: STARTUP
 authors: [ OptimusPrimeRDC ]
 description: Personal Assistant for HuhnSMP
 website: https://github.com/ConsoleGods/PrimeAssistant
+permissions:
+  primeassistant.updates:
+    default: op
+  primeassistant.notify:
+    default: op
