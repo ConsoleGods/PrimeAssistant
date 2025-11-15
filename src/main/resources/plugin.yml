@@ -11,3 +11,5 @@ permissions:
     default: op
   primeassistant.notify:
     default: op
+  primeassistant.chat.notify:
+    default: op

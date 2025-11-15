@@ -1,6 +1,7 @@
 package me.optimusprimerdc.primeAssistant;
 
 import me.optimusprimerdc.primeAssistant.items.snowball;
+import me.optimusprimerdc.primeAssistant.listener.ChatFiltering;
 import me.optimusprimerdc.primeAssistant.listener.FastLeafDecay;
 import me.optimusprimerdc.primeAssistant.updatechecker.UpdateChecker;
 import me.optimusprimerdc.primeAssistant.listener.Redstone;
@@ -17,6 +18,9 @@ public final class PrimeAssistant extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new FastLeafDecay(this), this);
 
+        // register chat filtering
+        getServer().getPluginManager().registerEvents(new ChatFiltering(this), this);
+
         UpdateChecker updateChecker = new UpdateChecker(this);
         updateChecker.fetch();
         if (updateChecker.hasUpdateAvailable()) {
@@ -29,7 +33,6 @@ public final class PrimeAssistant extends JavaPlugin {
         boolean enablePurge = getConfig().getBoolean("redstone-protection.enable-purge", true);
         Redstone redstoneProtector = new Redstone(this, tpsThreshold, enablePurge);
         getServer().getPluginManager().registerEvents(redstoneProtector, this);
-
 
 
         // ASCII art

@@ -130,11 +130,4 @@ public class Redstone implements Listener {
         }
     }
 
-    public boolean isRedstoneDisabled() {
-        return redstoneDisabled;
-    }
-
-    public double getCurrentTPSValue() {
-        return getCurrentTPS();
-    }
 }

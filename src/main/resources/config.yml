@@ -1,3 +1,98 @@
+# ============================================================
+#  PrimeAssistant Configuration
+# ============================================================
+
+# ------------------------------------------------------------
+#  REDSTONE PROTECTION
+#  Protects the server from redstone lag machines.
+#  NOTE: Purged redstone CANNOT be restored.
+# ------------------------------------------------------------
 redstone-protection:
+  # TPS level at which the plugin will trigger protection
   tps-threshold: 15.0
+
+  # When enabled, the plugin will purge redstone components
+  # when TPS drops below the threshold
   enable-purge: true
+
+
+# ------------------------------------------------------------
+#  CHAT FILTER SYSTEM
+#  Block, mute, or ban players based on filtered words.
+#  Supports basic word lists and advanced smart-regex generation.
+# ------------------------------------------------------------
+chat-filter:
+
+  # Discord Webhook for logging violations
+  # Leave blank to disable webhook messages
+  webhook-url: ""
+
+  # Should staff receive notifications in-game?
+  notify-staff: true
+
+  # Permission required to receive staff notifications
+  staff-permission: "primeassistant.chat.notify"
+
+  # Default punishment when no per-word punishment is defined
+  # Options: BLOCK, MUTE, BAN
+  default-punishment: "BLOCK"
+
+
+  # ----------------------------------------------------------
+  #  BASIC WORD FILTER
+  #  These words are matched EXACTLY as written.
+  #  Add words normally (e.g., "fuck")
+  # ----------------------------------------------------------
+  basic-words:
+    - "fuck"
+
+
+  # ----------------------------------------------------------
+  #  ADVANCED SMART FILTER
+  #  These words will be converted automatically into
+  #  obfuscation-resistant regex patterns.
+  #
+  #  Example:
+  #    "bitch" → catches bi†ch, b1tch, b!tch, etc.
+  # ----------------------------------------------------------
+  advanced-words:
+    - "bitch"
+
+
+  # ----------------------------------------------------------
+  #  PER-WORD PUNISHMENTS
+  #  Overrides default punishment.
+  #  Options: BLOCK, MUTE, BAN
+  # ----------------------------------------------------------
+  punishments:
+    fuck: "BLOCK"
+    bitch: "MUTE"
+
+
+  # Punishment message for bans
+  ban-reason: "Forbidden language"
+
+
+  # Discord webhook message formatting
+  # Placeholders:
+  #   %user% → Player name
+  #   %message% → Message content
+  #   %word% → Triggered word
+  #   %punishment% → BLOCK / MUTE / BAN
+  webhook-message: "%user% used word '%word%' in message: %message% (punishment=%punishment%)"
+
+
+  # ----------------------------------------------------------
+  #  PLAYER MESSAGES
+  # ----------------------------------------------------------
+  messages:
+    block: "Your message was blocked for using forbidden language."
+    mute: "You have been muted for using forbidden language."
+    ban-kick: "You were banned for %message%."
+    muted: "You are muted and cannot send messages."
+
+
+# ------------------------------------------------------------
+#  INTERNAL VERSIONING (DO NOT CHANGE)
+# ------------------------------------------------------------
+config-version: 1
