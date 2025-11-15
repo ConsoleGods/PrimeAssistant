@@ -2,6 +2,9 @@
 #  PrimeAssistant Configuration
 # ============================================================
 
+# Prefix for all plugin messages
+prefix: "&8[&6PrimeAssistant&8] &7"
+
 # ------------------------------------------------------------
 #  REDSTONE PROTECTION
 #  Protects the server from redstone lag machines.
@@ -95,4 +98,4 @@ chat-filter:
 # ------------------------------------------------------------
 #  INTERNAL VERSIONING (DO NOT CHANGE)
 # ------------------------------------------------------------
-config-version: 1
+config-version: 2

@@ -3,18 +3,20 @@ package me.optimusprimerdc.primeAssistant.listener;
 import me.optimusprimerdc.primeAssistant.PrimeAssistant;
 import org.bukkit.BanList;
 import org.bukkit.Bukkit;
+import org.bukkit.ChatColor;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.AsyncPlayerChatEvent;
+import org.bukkit.profile.PlayerProfile;
 
 import java.io.File;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
-import java.net.URL;
+import java.net.URI;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.util.*;
@@ -22,6 +24,8 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class ChatFiltering implements Listener {
+
+    private static final int EXPECTED_CONFIG_VERSION = 1;
 
     private final PrimeAssistant plugin;
     private final Map<String, Pattern> patterns = new LinkedHashMap<>();
@@ -31,7 +35,7 @@ public class ChatFiltering implements Listener {
     private boolean notifyStaff;
     private String staffPermission;
     private String defaultPunishment;
-    private final int expectedConfigVersion = 1;
+    private String prefix;
 
     public ChatFiltering(PrimeAssistant plugin) {
         this.plugin = plugin;
@@ -39,11 +43,16 @@ public class ChatFiltering implements Listener {
         loadConfig();
     }
 
+    public void reload() {
+        loadConfig();
+        plugin.getLogger().info("ChatFiltering reloaded");
+    }
+
     private void checkAndUpdateConfigVersion() {
         plugin.reloadConfig();
         int currentConfigVersion = plugin.getConfig().getInt("config-version", 0);
 
-        if (currentConfigVersion != expectedConfigVersion) {
+        if (currentConfigVersion != EXPECTED_CONFIG_VERSION) {
             plugin.getLogger().info("Config version mismatch (config-version=" + currentConfigVersion + "). Backing up and updating config.yml.");
 
             try {
@@ -67,6 +76,9 @@ public class ChatFiltering implements Listener {
 
     private void loadConfig() {
         plugin.reloadConfig();
+
+        prefix = ChatColor.translateAlternateColorCodes('&',
+                plugin.getConfig().getString("prefix", "&8[&6PrimeAssistant&8] &r"));
 
         ConfigurationSection cf = plugin.getConfig().getConfigurationSection("chat-filter");
         if (cf == null) {
@@ -109,7 +121,6 @@ public class ChatFiltering implements Listener {
     }
 
     private String convertToFlexibleRegex(String word) {
-        // Map common letter substitutions
         Map<Character, String> substitutions = new HashMap<>();
         substitutions.put('a', "[a@4]");
         substitutions.put('e', "[e3]");
@@ -123,20 +134,17 @@ public class ChatFiltering implements Listener {
         substitutions.put('z', "[z2]");
 
         StringBuilder sb = new StringBuilder();
-        sb.append("(?i)"); // Case insensitive flag
+        sb.append("(?i)");
 
         for (int i = 0; i < word.length(); i++) {
             char c = Character.toLowerCase(word.charAt(i));
 
-            // Use substitution pattern if available, otherwise just the letter
             if (substitutions.containsKey(c)) {
                 sb.append(substitutions.get(c));
             } else {
                 sb.append(Pattern.quote(String.valueOf(c)));
             }
 
-            // Allow optional separators between characters (spaces, dots, dashes, underscores, asterisks, etc.)
-            // but limit to prevent over-matching
             if (i < word.length() - 1) {
                 sb.append("[\\s._*-]*");
             }
@@ -152,7 +160,7 @@ public class ChatFiltering implements Listener {
         if (mutedPlayers.contains(player.getUniqueId())) {
             event.setCancelled(true);
             String tpl = plugin.getConfig().getString("chat-filter.messages.muted", "You are muted and cannot send messages.");
-            player.sendMessage(replacePlaceholders(tpl, player.getName(), event.getMessage(), ""));
+            player.sendMessage(prefix + replacePlaceholders(tpl, player.getName(), event.getMessage(), ""));
             return;
         }
 
@@ -178,46 +186,39 @@ public class ChatFiltering implements Listener {
         String message = event.getMessage();
         String baseMessage = plugin.getConfig().getString("chat-filter.messages." + punishment.toLowerCase(Locale.ROOT), null);
 
-        // Always cancel the message first (this is safe in async)
         event.setCancelled(true);
 
         switch (punishment) {
             case "BLOCK":
                 if (baseMessage != null) {
-                    player.sendMessage(replacePlaceholders(baseMessage, user, message, word));
+                    player.sendMessage(prefix + replacePlaceholders(baseMessage, user, message, word));
                 }
                 break;
 
             case "MUTE":
                 mutedPlayers.add(player.getUniqueId());
                 if (baseMessage != null) {
-                    player.sendMessage(replacePlaceholders(baseMessage, user, message, word));
+                    player.sendMessage(prefix + replacePlaceholders(baseMessage, user, message, word));
                 }
                 break;
 
             case "BAN":
-                // Schedule ban and kick on main thread
                 String reason = plugin.getConfig().getString("chat-filter.ban-reason", "Forbidden language");
-                String kickMessage = replacePlaceholders(
+                String kickMessage = prefix + replacePlaceholders(
                         plugin.getConfig().getString("chat-filter.messages.ban-kick", "You have been banned: %message%"),
                         user, message, word
                 );
 
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    Bukkit.getBanList(BanList.Type.NAME).addBan(player.getName(), reason, null, plugin.getName());
+                    BanList<PlayerProfile> banList = Bukkit.getBanList(BanList.Type.PROFILE);
+                    banList.addBan(player.getPlayerProfile(), reason, (Date) null, plugin.getName());
                     player.kickPlayer(kickMessage);
                 });
                 break;
-
-            default:
-                if (baseMessage != null) {
-                    player.sendMessage(replacePlaceholders(baseMessage, user, message, word));
-                }
         }
 
         if (notifyStaff) {
             String notifyMsg = String.format("[ChatFilter] %s used forbidden word '%s' (punishment=%s)", user, word, punishment);
-            // Schedule staff notification on main thread
             Bukkit.getScheduler().runTask(plugin, () -> notifyStaff(notifyMsg));
         }
 
@@ -230,16 +231,16 @@ public class ChatFiltering implements Listener {
 
     private String replacePlaceholders(String template, String user, String message, String word) {
         if (template == null) return "";
-        return template
+        return ChatColor.translateAlternateColorCodes('&', template
                 .replace("%user%", user)
                 .replace("%message%", message)
-                .replace("%word%", word);
+                .replace("%word%", word));
     }
 
     private void notifyStaff(String text) {
         for (Player p : Bukkit.getOnlinePlayers()) {
             if (p.hasPermission(staffPermission)) {
-                p.sendMessage(text);
+                p.sendMessage(prefix + text);
             }
         }
         plugin.getLogger().info(text);
@@ -248,8 +249,8 @@ public class ChatFiltering implements Listener {
     private void sendWebhook(String content) {
         new Thread(() -> {
             try {
-                URL url = new URL(webhookUrl);
-                HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+                URI uri = URI.create(webhookUrl);
+                HttpURLConnection conn = (HttpURLConnection) uri.toURL().openConnection();
                 conn.setRequestMethod("POST");
                 conn.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
                 conn.setDoOutput(true);
@@ -274,5 +275,4 @@ public class ChatFiltering implements Listener {
     private String escapeJson(String s) {
         return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n");
     }
-
 }

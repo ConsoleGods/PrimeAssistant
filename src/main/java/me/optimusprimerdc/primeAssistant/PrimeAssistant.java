@@ -1,5 +1,6 @@
 package me.optimusprimerdc.primeAssistant;
 
+import me.optimusprimerdc.primeAssistant.commands.PrimeAssistantCommand;
 import me.optimusprimerdc.primeAssistant.items.snowball;
 import me.optimusprimerdc.primeAssistant.listener.ChatFiltering;
 import me.optimusprimerdc.primeAssistant.listener.FastLeafDecay;
@@ -10,16 +11,17 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PrimeAssistant extends JavaPlugin {
 
+    private ChatFiltering chatFiltering;
+
     @Override
     public void onEnable() {
         saveDefaultConfig();
 
         getServer().getPluginManager().registerEvents(new snowball(), this);
-
         getServer().getPluginManager().registerEvents(new FastLeafDecay(this), this);
 
-        // register chat filtering
-        getServer().getPluginManager().registerEvents(new ChatFiltering(this), this);
+        chatFiltering = new ChatFiltering(this);
+        getServer().getPluginManager().registerEvents(chatFiltering, this);
 
         UpdateChecker updateChecker = new UpdateChecker(this);
         updateChecker.fetch();
@@ -34,8 +36,10 @@ public final class PrimeAssistant extends JavaPlugin {
         Redstone redstoneProtector = new Redstone(this, tpsThreshold, enablePurge);
         getServer().getPluginManager().registerEvents(redstoneProtector, this);
 
+        PrimeAssistantCommand mainCommand = new PrimeAssistantCommand(this);
+        getCommand("primeassistant").setExecutor(mainCommand);
+        getCommand("primeassistant").setTabCompleter(mainCommand);
 
-        // ASCII art
         getLogger().info("  ____       _                   _            _     _              _   ");
         getLogger().info(" |  _ \\ _ __(_)_ __ ___   ___   / \\   ___ ___(_)___| |_ __ _ _ __ | |_ ");
         getLogger().info(" | |_) | '__| | '_ ` _ \\ / _ \\ / _ \\ / __/ __| / __| __/ _` | '_ \\| __|");
@@ -43,11 +47,14 @@ public final class PrimeAssistant extends JavaPlugin {
         getLogger().info(" |_|   |_|  |_|_| |_| |_|\\___/_/   \\_\\___/___/_|___/\\__\\__,_|_| |_|\\__|");
         getLogger().info("                                                                       ");
         getLogger().info("PrimeAssistant is enabled");
-
     }
 
     @Override
     public void onDisable() {
         getLogger().info("PrimeAssistant is disabled");
+    }
+
+    public ChatFiltering getChatFiltering() {
+        return chatFiltering;
     }
 }

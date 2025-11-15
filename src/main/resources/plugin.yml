@@ -6,6 +6,13 @@ load: STARTUP
 authors: [ OptimusPrimeRDC ]
 description: Personal Assistant for HuhnSMP
 website: https://github.com/ConsoleGods/PrimeAssistant
+
+commands:
+  primeassistant:
+    description: Main command for PrimeAssistant
+    usage: /pa reload
+    aliases: pa
+
 permissions:
   primeassistant.updates:
     default: op
