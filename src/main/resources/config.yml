@@ -70,7 +70,25 @@ timeout-seconds: 30
 messages:
   cancel: "&cYour pearl was in stasis and has been blocked."
 
+# ============================================================
 
+# CLEAR LAG SECTION
+
+# ============================================================
+
+clearlag:
+  enabled: true
+
+  # Interval in seconds between clear runs (default 600)
+  interval-seconds: 600
+
+  # Materials to exclude from removal (use Bukkit Material names, case-insensitive)
+  # Examples:
+  #   - "DIAMOND"
+  #   - "NETHER_STAR"
+  blocklist:
+    - "DIAMOND"
+    - "NETHER_STAR"
 
 # ============================================================
 #  INTERNAL VERSION (DO NOT MODIFY)

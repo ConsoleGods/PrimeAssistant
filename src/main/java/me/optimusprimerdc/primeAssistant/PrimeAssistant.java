@@ -7,16 +7,20 @@ import me.optimusprimerdc.primeAssistant.listener.FastLeafDecay;
 import me.optimusprimerdc.primeAssistant.updatechecker.UpdateChecker;
 import me.optimusprimerdc.primeAssistant.listener.Redstone;
 import me.optimusprimerdc.primeAssistant.listener.AntiStasisEnderPearl;
+import me.optimusprimerdc.primeAssistant.clearlag.ClearLag;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
 public final class PrimeAssistant extends JavaPlugin {
 
     private ChatFiltering chatFiltering;
+    private ClearLag clearLag;
 
     @Override
     public void onEnable() {
         saveDefaultConfig();
+
+        clearLag = new ClearLag(this);
 
         getServer().getPluginManager().registerEvents(new snowball(), this);
         getServer().getPluginManager().registerEvents(new FastLeafDecay(this), this);
@@ -55,10 +59,17 @@ public final class PrimeAssistant extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (clearLag != null) {
+            clearLag.stop();
+        }
         getLogger().info("PrimeAssistant is disabled");
     }
 
     public ChatFiltering getChatFiltering() {
         return this.chatFiltering;
+    }
+
+    public ClearLag getClearLag() {
+        return this.clearLag;
     }
 }
