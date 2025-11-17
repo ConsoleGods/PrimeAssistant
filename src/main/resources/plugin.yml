@@ -10,8 +10,9 @@ website: https://github.com/ConsoleGods/PrimeAssistant
 commands:
   primeassistant:
     description: Main command for PrimeAssistant
-    usage: /pa reload
-    aliases: pa
+    usage: /primeassistant <reload|unban|unmute> [player]
+    aliases: [pa]
+    permission-message: '&cYou do not have permission to use PrimeAssistant commands.'
 
 permissions:
   primeassistant.updates:
@@ -19,4 +20,12 @@ permissions:
   primeassistant.notify:
     default: op
   primeassistant.chat.notify:
+    default: op
+  primeassistant.unban:
+    default: op
+  primeassistant.unmute:
+    default: op
+  primeassistant.reload:
+    default: op
+  primeassistant.bypass:
     default: op

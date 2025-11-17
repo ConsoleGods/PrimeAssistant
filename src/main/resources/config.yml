@@ -5,97 +5,74 @@
 # Prefix for all plugin messages
 prefix: "&8[&6PrimeAssistant&8] &7"
 
-# ------------------------------------------------------------
+# ============================================================
 #  REDSTONE PROTECTION
-#  Protects the server from redstone lag machines.
-#  NOTE: Purged redstone CANNOT be restored.
-# ------------------------------------------------------------
+# ============================================================
 redstone-protection:
-  # TPS level at which the plugin will trigger protection
-  tps-threshold: 15.0
+  tps-threshold: 15.0   # TPS level at which protection activates
+  enable-purge: true    # Purges redstone when TPS drops below threshold
 
-  # When enabled, the plugin will purge redstone components
-  # when TPS drops below the threshold
-  enable-purge: true
-
-
-# ------------------------------------------------------------
-#  CHAT FILTER SYSTEM
-#  Block, mute, or ban players based on filtered words.
-#  Supports basic word lists and advanced smart-regex generation.
-# ------------------------------------------------------------
+# ============================================================
+#  CHAT FILTER
+# ============================================================
 chat-filter:
 
-  # Discord Webhook for logging violations
-  # Leave blank to disable webhook messages
+  # Discord webhook (leave empty to disable)
   webhook-url: ""
 
-  # Should staff receive notifications in-game?
+  # Staff notifications
   notify-staff: true
-
-  # Permission required to receive staff notifications
   staff-permission: "primeassistant.chat.notify"
 
-  # Default punishment when no per-word punishment is defined
-  # Options: BLOCK, MUTE, BAN
-  default-punishment: "BLOCK"
+  # Default punishments
+  default-punishment: "BLOCK"  # BLOCK / MUTE / BAN
+  mute-duration: 300            # Seconds (0 = permanent)
+  ban-duration: 0               # Seconds (0 = permanent)
 
-
-  # ----------------------------------------------------------
-  #  BASIC WORD FILTER
-  #  These words are matched EXACTLY as written.
-  #  Add words normally (e.g., "fuck")
-  # ----------------------------------------------------------
+  # Basic word filter (exact matches)
   basic-words:
     - "fuck"
 
-
-  # ----------------------------------------------------------
-  #  ADVANCED SMART FILTER
-  #  These words will be converted automatically into
-  #  obfuscation-resistant regex patterns.
-  #
-  #  Example:
-  #    "bitch" → catches bi†ch, b1tch, b!tch, etc.
-  # ----------------------------------------------------------
+  # Advanced smart filter (auto-regex, catches obfuscation)
   advanced-words:
     - "bitch"
 
-
-  # ----------------------------------------------------------
-  #  PER-WORD PUNISHMENTS
-  #  Overrides default punishment.
-  #  Options: BLOCK, MUTE, BAN
-  # ----------------------------------------------------------
+  # Per-word punishments
   punishments:
     fuck: "BLOCK"
     bitch: "MUTE"
 
-
-  # Punishment message for bans
+  # Ban reason
   ban-reason: "Forbidden language"
 
+  # Discord webhook message format
+  webhook-message: "%user% used '%word%' in: %message% (punishment=%punishment%)"
 
-  # Discord webhook message formatting
-  # Placeholders:
-  #   %user% → Player name
-  #   %message% → Message content
-  #   %word% → Triggered word
-  #   %punishment% → BLOCK / MUTE / BAN
-  webhook-message: "%user% used word '%word%' in message: %message% (punishment=%punishment%)"
-
-
-  # ----------------------------------------------------------
-  #  PLAYER MESSAGES
-  # ----------------------------------------------------------
+  # Player messages
   messages:
     block: "Your message was blocked for using forbidden language."
     mute: "You have been muted for using forbidden language."
     ban-kick: "You were banned for %message%."
     muted: "You are muted and cannot send messages."
 
+# ============================================================
 
-# ------------------------------------------------------------
-#  INTERNAL VERSIONING (DO NOT CHANGE)
-# ------------------------------------------------------------
-config-version: 2
+# ANTI STASIS ENDER PEARL
+
+# ============================================================
+
+enabled: true
+
+# Number of seconds after a pearl was thrown to consider it "stasis"
+# Pearls older than this will have their teleport cancelled.
+timeout-seconds: 30
+
+messages:
+  cancel: "&cYour pearl was in stasis and has been blocked."
+
+
+
+# ============================================================
+#  INTERNAL VERSION (DO NOT MODIFY)
+# ============================================================
+config-version: 3

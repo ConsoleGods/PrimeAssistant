@@ -6,6 +6,7 @@ import me.optimusprimerdc.primeAssistant.listener.ChatFiltering;
 import me.optimusprimerdc.primeAssistant.listener.FastLeafDecay;
 import me.optimusprimerdc.primeAssistant.updatechecker.UpdateChecker;
 import me.optimusprimerdc.primeAssistant.listener.Redstone;
+import me.optimusprimerdc.primeAssistant.listener.AntiStasisEnderPearl;
 
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -22,6 +23,9 @@ public final class PrimeAssistant extends JavaPlugin {
 
         chatFiltering = new ChatFiltering(this);
         getServer().getPluginManager().registerEvents(chatFiltering, this);
+
+        AntiStasisEnderPearl antiStasis = new AntiStasisEnderPearl(this);
+        antiStasis.register();
 
         UpdateChecker updateChecker = new UpdateChecker(this);
         updateChecker.fetch();
@@ -55,6 +59,6 @@ public final class PrimeAssistant extends JavaPlugin {
     }
 
     public ChatFiltering getChatFiltering() {
-        return chatFiltering;
+        return this.chatFiltering;
     }
 }

@@ -25,12 +25,12 @@ import java.util.regex.Pattern;
 
 public class ChatFiltering implements Listener {
 
-    private static final int EXPECTED_CONFIG_VERSION = 1;
+    private static final int EXPECTED_CONFIG_VERSION = 3;
 
     private final PrimeAssistant plugin;
     private final Map<String, Pattern> patterns = new LinkedHashMap<>();
     private final Map<String, String> punishments = new HashMap<>();
-    private final Set<UUID> mutedPlayers = new HashSet<>();
+    private final Map<UUID, Long> mutedPlayers = new HashMap<>();
     private String webhookUrl;
     private boolean notifyStaff;
     private String staffPermission;
@@ -153,11 +153,37 @@ public class ChatFiltering implements Listener {
         return sb.toString();
     }
 
+    public void mutePlayer(UUID playerUUID, long durationSeconds) {
+        long expiryTime = durationSeconds > 0 ? System.currentTimeMillis() + (durationSeconds * 1000) : 0;
+        mutedPlayers.put(playerUUID, expiryTime);
+    }
+
+    public boolean isMuted(UUID playerUUID) {
+        Long expiryTime = mutedPlayers.get(playerUUID);
+        if (expiryTime == null) return false;
+
+        if (expiryTime > 0 && System.currentTimeMillis() > expiryTime) {
+            mutedPlayers.remove(playerUUID);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean unmutePlayer(UUID playerUUID) {
+        return mutedPlayers.remove(playerUUID) != null;
+    }
+
     @EventHandler
     public void onPlayerChat(AsyncPlayerChatEvent event) {
         Player player = event.getPlayer();
 
-        if (mutedPlayers.contains(player.getUniqueId())) {
+        // Check for bypass permission or OP status
+        String bypassPermission = plugin.getConfig().getString("chat-filter.bypass-permission", "primeassistant.chat.bypass");
+        if (player.isOp() || player.hasPermission(bypassPermission)) {
+            return; // Allow message without filtering
+        }
+
+        if (isMuted(player.getUniqueId())) {
             event.setCancelled(true);
             String tpl = plugin.getConfig().getString("chat-filter.messages.muted", "You are muted and cannot send messages.");
             player.sendMessage(prefix + replacePlaceholders(tpl, player.getName(), event.getMessage(), ""));
@@ -196,7 +222,8 @@ public class ChatFiltering implements Listener {
                 break;
 
             case "MUTE":
-                mutedPlayers.add(player.getUniqueId());
+                int muteDuration = plugin.getConfig().getInt("chat-filter.mute-duration", 0);
+                mutePlayer(player.getUniqueId(), muteDuration);
                 if (baseMessage != null) {
                     player.sendMessage(prefix + replacePlaceholders(baseMessage, user, message, word));
                 }
@@ -204,6 +231,7 @@ public class ChatFiltering implements Listener {
 
             case "BAN":
                 String reason = plugin.getConfig().getString("chat-filter.ban-reason", "Forbidden language");
+                int banDuration = plugin.getConfig().getInt("chat-filter.ban-duration", 0);
                 String kickMessage = prefix + replacePlaceholders(
                         plugin.getConfig().getString("chat-filter.messages.ban-kick", "You have been banned: %message%"),
                         user, message, word
@@ -211,7 +239,8 @@ public class ChatFiltering implements Listener {
 
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     BanList<PlayerProfile> banList = Bukkit.getBanList(BanList.Type.PROFILE);
-                    banList.addBan(player.getPlayerProfile(), reason, (Date) null, plugin.getName());
+                    Date expiry = banDuration > 0 ? new Date(System.currentTimeMillis() + (banDuration * 1000L)) : null;
+                    banList.addBan(player.getPlayerProfile(), reason, expiry, plugin.getName());
                     player.kickPlayer(kickMessage);
                 });
                 break;
