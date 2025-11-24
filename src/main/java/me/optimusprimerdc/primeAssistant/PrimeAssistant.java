@@ -2,11 +2,8 @@ package me.optimusprimerdc.primeAssistant;
 
 import me.optimusprimerdc.primeAssistant.commands.PrimeAssistantCommand;
 import me.optimusprimerdc.primeAssistant.items.snowball;
-import me.optimusprimerdc.primeAssistant.listener.ChatFiltering;
-import me.optimusprimerdc.primeAssistant.listener.FastLeafDecay;
+import me.optimusprimerdc.primeAssistant.listener.*;
 import me.optimusprimerdc.primeAssistant.updatechecker.UpdateChecker;
-import me.optimusprimerdc.primeAssistant.listener.Redstone;
-import me.optimusprimerdc.primeAssistant.listener.AntiStasisEnderPearl;
 import me.optimusprimerdc.primeAssistant.clearlag.ClearLag;
 
 import org.bukkit.plugin.java.JavaPlugin;
@@ -24,6 +21,7 @@ public final class PrimeAssistant extends JavaPlugin {
 
         getServer().getPluginManager().registerEvents(new snowball(), this);
         getServer().getPluginManager().registerEvents(new FastLeafDecay(this), this);
+        getServer().getPluginManager().registerEvents(new Gunpowder(this), this);
 
         chatFiltering = new ChatFiltering(this);
         getServer().getPluginManager().registerEvents(chatFiltering, this);
