@@ -2,7 +2,7 @@
 #  PrimeAssistant Configuration
 # ============================================================
 
-# Prefix for all plugin messages
+# Prefix for all plugin messages (use color codes with &)
 prefix: "&8[&6PrimeAssistant&8] &7"
 
 # ============================================================
@@ -16,7 +16,6 @@ redstone-protection:
 #  CHAT FILTER
 # ============================================================
 chat-filter:
-
   # Discord webhook (leave empty to disable)
   webhook-url: ""
 
@@ -24,12 +23,12 @@ chat-filter:
   notify-staff: true
   staff-permission: "primeassistant.chat.notify"
 
-  # Default punishments
-  default-punishment: "BLOCK"  # BLOCK / MUTE / BAN
+  # Default punishments (BLOCK / MUTE / BAN)
+  default-punishment: "BLOCK"
   mute-duration: 300            # Seconds (0 = permanent)
   ban-duration: 0               # Seconds (0 = permanent)
 
-  # Basic word filter (exact matches)
+  # Basic word filter (exact matches). Lowercase or uppercase both work.
   basic-words:
     - "fuck"
 
@@ -37,18 +36,18 @@ chat-filter:
   advanced-words:
     - "bitch"
 
-  # Per-word punishments
+  # Per-word punishments (override default)
   punishments:
     fuck: "BLOCK"
     bitch: "MUTE"
 
-  # Ban reason
+  # Ban reason used when auto-banning
   ban-reason: "Forbidden language"
 
   # Discord webhook message format
   webhook-message: "%user% used '%word%' in: %message% (punishment=%punishment%)"
 
-  # Player messages
+  # Player-facing messages (can include color codes)
   messages:
     block: "Your message was blocked for using forbidden language."
     mute: "You have been muted for using forbidden language."
@@ -56,41 +55,80 @@ chat-filter:
     muted: "You are muted and cannot send messages."
 
 # ============================================================
+#  ANTI STASIS ENDER PEARL
+#  (moved into its own section for clarity)
+# ============================================================
+anti-stasis:
+  enabled: true
 
-# ANTI STASIS ENDER PEARL
+  # Number of seconds after a pearl was thrown to consider it "stasis".
+  # Pearls older than this may be cancelled when the teleport occurs.
+  timeout-seconds: 30
+
+  messages:
+    cancel: "&cYour pearl was in stasis and has been blocked."
+
+  # Optional debug toggle (set true to log pearl queue behavior)
+  debug: false
 
 # ============================================================
-
-enabled: true
-
-# Number of seconds after a pearl was thrown to consider it "stasis"
-# Pearls older than this will have their teleport cancelled.
-timeout-seconds: 30
-
-messages:
-  cancel: "&cYour pearl was in stasis and has been blocked."
-
+#  CLEAR LAG
 # ============================================================
-
-# CLEAR LAG SECTION
-
-# ============================================================
-
 clearlag:
   enabled: true
 
-  # Interval in seconds between clear runs (default 600)
+  # Interval in seconds between clear runs (default 600 = 10 minutes)
   interval-seconds: 600
+
+  # How long before a scheduled clear to start the broadcast countdown (seconds)
+  # The plugin will broadcast at full-minute marks and every second during the last 10s.
+  warning-seconds: 30
 
   # Materials to exclude from removal (use Bukkit Material names, case-insensitive)
   # Examples:
-  #   - "DIAMOND"
-  #   - "NETHER_STAR"
+  #   - DIAMOND
+  #   - NETHER_STAR
   blocklist:
     - "DIAMOND"
     - "NETHER_STAR"
 
 # ============================================================
-#  INTERNAL VERSION (DO NOT MODIFY)
+#  GUNPOWDER / PARTICLES (easy tuning for visuals & fuse speed)
 # ============================================================
-config-version: 3
+gunpowder:
+  particles:
+    # How often (ticks) ambient particles run per placed powder (smaller = smoother)
+    ambient-interval-ticks: 10
+
+    dust:
+      count: 3
+      color:
+        r: 50
+        g: 50
+        b: 50
+      size: 1.2
+      offset:
+        x: 0.2
+        y: 0.02
+        z: 0.2
+
+    flame:
+      count: 8
+      offset:
+        x: 0.15
+        y: 0.1
+        z: 0.15
+
+    lava:
+      count: 2
+
+    smoke:
+      count: 3
+
+  # Tick interval used when propagating the fuse (smaller = faster propagation)
+  fuse-step-ticks: 3
+
+# ============================================================
+#  INTERNAL VERSION (do not modify unless you know what you're doing)
+# ============================================================
+config-version: 4

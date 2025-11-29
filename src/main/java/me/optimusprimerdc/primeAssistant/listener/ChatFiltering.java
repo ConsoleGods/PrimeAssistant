@@ -14,6 +14,8 @@ import org.bukkit.profile.PlayerProfile;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
@@ -25,8 +27,7 @@ import java.util.regex.Pattern;
 
 public class ChatFiltering implements Listener {
 
-    private static final int EXPECTED_CONFIG_VERSION = 3;
-
+    private final int expectedConfigVersion;
     private final PrimeAssistant plugin;
     private final Map<String, Pattern> patterns = new LinkedHashMap<>();
     private final Map<String, String> punishments = new HashMap<>();
@@ -39,6 +40,7 @@ public class ChatFiltering implements Listener {
 
     public ChatFiltering(PrimeAssistant plugin) {
         this.plugin = plugin;
+        this.expectedConfigVersion = loadBundledConfigVersion();
         checkAndUpdateConfigVersion();
         loadConfig();
     }
@@ -48,12 +50,23 @@ public class ChatFiltering implements Listener {
         plugin.getLogger().info("ChatFiltering reloaded");
     }
 
+    private int loadBundledConfigVersion() {
+        try (InputStream in = plugin.getResource("config.yml")) {
+            if (in == null) return 0;
+            YamlConfiguration def = YamlConfiguration.loadConfiguration(new InputStreamReader(in, StandardCharsets.UTF_8));
+            return def.getInt("config-version", 0);
+        } catch (Exception ex) {
+            plugin.getLogger().warning("Failed to read bundled config-version: " + ex.getMessage());
+            return 0;
+        }
+    }
+
     private void checkAndUpdateConfigVersion() {
         plugin.reloadConfig();
         int currentConfigVersion = plugin.getConfig().getInt("config-version", 0);
 
-        if (currentConfigVersion != EXPECTED_CONFIG_VERSION) {
-            plugin.getLogger().info("Config version mismatch (config-version=" + currentConfigVersion + "). Backing up and updating config.yml.");
+        if (currentConfigVersion != expectedConfigVersion) {
+            plugin.getLogger().info("Config version mismatch (config-version=" + currentConfigVersion + "). Backing up and updating config.yml to bundled version " + expectedConfigVersion + ".");
 
             try {
                 File configFile = new File(plugin.getDataFolder(), "config.yml");

@@ -68,12 +68,79 @@ public class Gunpowder implements Listener {
             Material.SHROOMLIGHT
     );
 
+    // Configurable particle & fuse settings (defaults below)
+    private int ambientIntervalTicks = 10;
+    private int fuseStepTicks = 3;
+
+    private int dustCount = 3;
+    private int dustR = 50, dustG = 50, dustB = 50;
+    private float dustSize = 1.2f;
+    private double dustOffsetX = 0.2, dustOffsetY = 0.02, dustOffsetZ = 0.2;
+
+    private int flameCount = 8;
+    private int lavaCount = 2;
+    private int smokeCount = 3;
+    private double flameOffsetX = 0.15, flameOffsetY = 0.1, flameOffsetZ = 0.15;
+
     public Gunpowder(JavaPlugin plugin) {
         this.plugin = plugin;
+        setupDefaults();
+        loadConfig();
     }
 
     private Location normalize(Location loc) {
         return loc == null ? null : loc.getBlock().getLocation();
+    }
+
+    private void setupDefaults() {
+        // particle defaults
+        plugin.getConfig().addDefault("gunpowder.particles.ambient-interval-ticks", ambientIntervalTicks);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.count", dustCount);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.color.r", dustR);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.color.g", dustG);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.color.b", dustB);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.size", dustSize);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.offset.x", dustOffsetX);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.offset.y", dustOffsetY);
+        plugin.getConfig().addDefault("gunpowder.particles.dust.offset.z", dustOffsetZ);
+
+        plugin.getConfig().addDefault("gunpowder.particles.flame.count", flameCount);
+        plugin.getConfig().addDefault("gunpowder.particles.lava.count", lavaCount);
+        plugin.getConfig().addDefault("gunpowder.particles.smoke.count", smokeCount);
+        plugin.getConfig().addDefault("gunpowder.particles.flame.offset.x", flameOffsetX);
+        plugin.getConfig().addDefault("gunpowder.particles.flame.offset.y", flameOffsetY);
+        plugin.getConfig().addDefault("gunpowder.particles.flame.offset.z", flameOffsetZ);
+
+        // fuse
+        plugin.getConfig().addDefault("gunpowder.fuse-step-ticks", fuseStepTicks);
+
+        plugin.getConfig().options().copyDefaults(true);
+        plugin.saveConfig();
+    }
+
+    public synchronized void loadConfig() {
+        ambientIntervalTicks = Math.max(1, plugin.getConfig().getInt("gunpowder.particles.ambient-interval-ticks", ambientIntervalTicks));
+        fuseStepTicks = Math.max(1, plugin.getConfig().getInt("gunpowder.fuse-step-ticks", fuseStepTicks));
+
+        dustCount = Math.max(0, plugin.getConfig().getInt("gunpowder.particles.dust.count", dustCount));
+        dustR = clampColor(plugin.getConfig().getInt("gunpowder.particles.dust.color.r", dustR));
+        dustG = clampColor(plugin.getConfig().getInt("gunpowder.particles.dust.color.g", dustG));
+        dustB = clampColor(plugin.getConfig().getInt("gunpowder.particles.dust.color.b", dustB));
+        dustSize = (float) plugin.getConfig().getDouble("gunpowder.particles.dust.size", dustSize);
+        dustOffsetX = plugin.getConfig().getDouble("gunpowder.particles.dust.offset.x", dustOffsetX);
+        dustOffsetY = plugin.getConfig().getDouble("gunpowder.particles.dust.offset.y", dustOffsetY);
+        dustOffsetZ = plugin.getConfig().getDouble("gunpowder.particles.dust.offset.z", dustOffsetZ);
+
+        flameCount = Math.max(0, plugin.getConfig().getInt("gunpowder.particles.flame.count", flameCount));
+        lavaCount = Math.max(0, plugin.getConfig().getInt("gunpowder.particles.lava.count", lavaCount));
+        smokeCount = Math.max(0, plugin.getConfig().getInt("gunpowder.particles.smoke.count", smokeCount));
+        flameOffsetX = plugin.getConfig().getDouble("gunpowder.particles.flame.offset.x", flameOffsetX);
+        flameOffsetY = plugin.getConfig().getDouble("gunpowder.particles.flame.offset.y", flameOffsetY);
+        flameOffsetZ = plugin.getConfig().getDouble("gunpowder.particles.flame.offset.z", flameOffsetZ);
+    }
+
+    private int clampColor(int v) {
+        return Math.max(0, Math.min(255, v));
     }
 
     @EventHandler
@@ -157,12 +224,13 @@ public class Gunpowder implements Listener {
                     return;
                 }
 
+                // dust particle (configurable)
                 world.spawnParticle(Particle.DUST,
                         taskLoc.clone().add(0.5, 0.05, 0.5),
-                        3, 0.2, 0.02, 0.2, 0,
-                        new Particle.DustOptions(Color.fromRGB(50, 50, 50), 1.2f));
+                        dustCount, dustOffsetX, dustOffsetY, dustOffsetZ, 0,
+                        new Particle.DustOptions(Color.fromRGB(dustR, dustG, dustB), dustSize));
             }
-        }.runTaskTimer(plugin, 0L, 10L).getTaskId();
+        }.runTaskTimer(plugin, 0L, ambientIntervalTicks).getTaskId();
 
         particleTasks.put(taskLoc, taskId);
     }
@@ -263,9 +331,19 @@ public class Gunpowder implements Listener {
                     visited.add(loc);
 
                     World world = b.getWorld();
-                    world.spawnParticle(Particle.FLAME, loc.clone().add(0.5, 0.1, 0.5), 8, 0.15, 0.05, 0.15, 0.02);
-                    world.spawnParticle(Particle.LAVA, loc.clone().add(0.5, 0.1, 0.5), 2);
-                    world.spawnParticle(Particle.LARGE_SMOKE, loc.clone().add(0.5, 0.1, 0.5), 3, 0.1, 0.05, 0.1, 0.01);
+                    // configurable flame / lava / smoke particles & offsets
+                    if (flameCount > 0) {
+                        world.spawnParticle(Particle.FLAME, loc.clone().add(0.5, flameOffsetY, 0.5),
+                                flameCount, flameOffsetX, flameOffsetY, flameOffsetZ, 0);
+                    }
+                    if (lavaCount > 0) {
+                        world.spawnParticle(Particle.LAVA, loc.clone().add(0.5, flameOffsetY, 0.5),
+                                lavaCount, flameOffsetX, flameOffsetY, flameOffsetZ, 0);
+                    }
+                    if (smokeCount > 0) {
+                        world.spawnParticle(Particle.LARGE_SMOKE, loc.clone().add(0.5, flameOffsetY, 0.5),
+                                smokeCount, flameOffsetX, flameOffsetY, flameOffsetZ, 0.01f);
+                    }
                     world.playSound(loc, Sound.ENTITY_CREEPER_PRIMED, 0.7f, 1.4f);
                     world.playSound(loc, Sound.BLOCK_FIRE_AMBIENT, 0.5f, 1.2f);
 
@@ -300,6 +378,6 @@ public class Gunpowder implements Listener {
                     }
                 }
             }
-        }.runTaskTimer(plugin, 0L, 3L);
+        }.runTaskTimer(plugin, 0L, fuseStepTicks);
     }
 }

@@ -10,22 +10,22 @@ import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.metadata.FixedMetadataValue;
 import org.bukkit.plugin.java.JavaPlugin;
 
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Anti-stasis EnderPearl listener.
- * Reads config from either 'anti-stasis.*' or top-level keys (fallback),
- * records pearl throw timestamps in a map and player metadata, and cancels
- * teleports when a pearl is older than the configured timeout.
+ * Tracks a FIFO queue of pearl timestamps per-player so multiple thrown pearls are handled correctly.
  */
 public class AntiStasisEnderPearl implements Listener {
 
     private static final String META_KEY = "primeassistant_lastPearl";
 
     private final JavaPlugin plugin;
-    private final Map<UUID, Long> lastPearlTs = new ConcurrentHashMap<>();
+    private final Map<UUID, Deque<Long>> lastPearlQueues = new ConcurrentHashMap<>();
 
     private long timeoutMillis;
     private boolean enabled;
@@ -41,11 +41,7 @@ public class AntiStasisEnderPearl implements Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
     }
 
-    /**
-     * Read configuration with support for both 'anti-stasis.*' section and top-level keys.
-     */
     public void reloadConfigValues() {
-        // helper lambdas omitted for brevity; do explicit checks for both paths
         if (plugin.getConfig().contains("anti-stasis.enabled")) {
             this.enabled = plugin.getConfig().getBoolean("anti-stasis.enabled", true);
             this.timeoutMillis = Math.max(0, plugin.getConfig().getInt("anti-stasis.timeout-seconds", 30)) * 1000L;
@@ -53,7 +49,6 @@ public class AntiStasisEnderPearl implements Listener {
                     plugin.getConfig().getString("anti-stasis.messages.cancel", "&cStasis pearls are not allowed."));
             this.debug = plugin.getConfig().getBoolean("anti-stasis.debug", false);
         } else {
-            // fallback to top-level keys (your current config layout)
             this.enabled = plugin.getConfig().getBoolean("enabled", true);
             this.timeoutMillis = Math.max(0, plugin.getConfig().getInt("timeout-seconds", 30)) * 1000L;
             this.cancelMessage = ChatColor.translateAlternateColorCodes('&',
@@ -73,9 +68,16 @@ public class AntiStasisEnderPearl implements Listener {
         if (event.getEntity() instanceof EnderPearl pearl) {
             if (pearl.getShooter() instanceof Player shooter) {
                 long now = System.currentTimeMillis();
-                lastPearlTs.put(shooter.getUniqueId(), now);
+                UUID uuid = shooter.getUniqueId();
+
+                // push timestamp to the player's FIFO queue
+                Deque<Long> q = lastPearlQueues.computeIfAbsent(uuid, k -> new ArrayDeque<>());
+                q.addLast(now);
+
+                // keep metadata for resilience/fallback (stores latest)
                 shooter.setMetadata(META_KEY, new FixedMetadataValue(plugin, now));
-                if (debug) plugin.getLogger().info("Recorded pearl throw for " + shooter.getName() + " at " + now);
+
+                if (debug) plugin.getLogger().info("Recorded pearl throw for " + shooter.getName() + " at " + now + " (queueSize=" + q.size() + ")");
             }
         }
     }
@@ -90,16 +92,21 @@ public class AntiStasisEnderPearl implements Listener {
 
         Long thrownAt = null;
 
-        // prefer metadata (more resilient), then fallback to map
-        if (player.hasMetadata(META_KEY)) {
+        // Prefer per-player queue (FIFO) which matches multiple pearls correctly
+        Deque<Long> q = lastPearlQueues.get(uuid);
+        if (q != null) {
+            thrownAt = q.pollFirst();
+            if (q.isEmpty()) {
+                lastPearlQueues.remove(uuid);
+            }
+        }
+
+        // fallback to player metadata if queue had no entry
+        if (thrownAt == null && player.hasMetadata(META_KEY)) {
             try {
                 Object v = player.getMetadata(META_KEY).get(0).value();
                 if (v instanceof Number) thrownAt = ((Number) v).longValue();
             } catch (Exception ignored) { /* fallback below */ }
-        }
-
-        if (thrownAt == null) {
-            thrownAt = lastPearlTs.get(uuid);
         }
 
         if (thrownAt == null) {
@@ -116,14 +123,20 @@ public class AntiStasisEnderPearl implements Listener {
             if (debug) plugin.getLogger().info("AntiStasis: allowed pearl teleport for " + player.getName() + " (age=" + age + "ms)");
         }
 
-        // cleanup
-        lastPearlTs.remove(uuid);
+        // cleanup metadata and queue entry already polled above
         try { player.removeMetadata(META_KEY, plugin); } catch (Exception ignored) {}
 
-        // opportunistic cleanup
-        if (lastPearlTs.size() > 500) {
+        // opportunistic cleanup: trim stale timestamps in queues to avoid memory growth
+        if (lastPearlQueues.size() > 500) {
             long cutoff = System.currentTimeMillis() - (timeoutMillis * 4L);
-            lastPearlTs.entrySet().removeIf(e -> e.getValue() < cutoff);
+            lastPearlQueues.forEach((id, deque) -> {
+                synchronized (deque) {
+                    while (!deque.isEmpty() && deque.peekFirst() < cutoff) {
+                        deque.pollFirst();
+                    }
+                }
+            });
+            lastPearlQueues.entrySet().removeIf(e -> e.getValue().isEmpty());
         }
     }
 }
