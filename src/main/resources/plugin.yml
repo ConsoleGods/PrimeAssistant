@@ -2,17 +2,21 @@ name: PrimeAssistant
 version: ${version}
 main: me.optimusprimerdc.primeAssistant.PrimeAssistant
 api-version: '1.21'
-load: STARTUP
 authors: [ OptimusPrimeRDC ]
 description: Personal Assistant for HuhnSMP
 website: https://github.com/ConsoleGods/PrimeAssistant
-
+depend:
+  - WorldGuard
+  - Vault
 commands:
   primeassistant:
     description: Main command for PrimeAssistant
     usage: /primeassistant <reload|unban|unmute> [player]
     aliases: [pa]
     permission-message: '&cYou do not have permission to use PrimeAssistant commands.'
+  cf:
+    description: CoinFlip command
+    usage: /cf <player> <amount>
 
 permissions:
   primeassistant.updates:

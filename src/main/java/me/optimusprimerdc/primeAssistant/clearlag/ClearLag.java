@@ -1,5 +1,7 @@
 package me.optimusprimerdc.primeAssistant.clearlag;
 
+import me.optimusprimerdc.primeAssistant.PrimeAssistant;
+import me.optimusprimerdc.primeAssistant.config.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
@@ -26,8 +28,10 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.logging.Logger;
 
+@SuppressWarnings("deprecation")
 public class ClearLag {
-    private final JavaPlugin plugin;
+    private final PrimeAssistant plugin;
+    private final ConfigManager cfg;
     private final Logger logger;
     private BukkitTask clearTask;
     private BukkitTask countdownTask;
@@ -45,8 +49,9 @@ public class ClearLag {
     private final long maxLogSize = 5 * 1024 * 1024L;
     private final DateTimeFormatter tsFormat = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss").withZone(ZoneId.systemDefault());
 
-    public ClearLag(JavaPlugin plugin) {
-        this.plugin = Objects.requireNonNull(plugin, "plugin");
+    public ClearLag(PrimeAssistant plugin) {
+        this.plugin = plugin;
+        this.cfg = plugin.getConfigManager();
         this.logger = plugin.getLogger();
 
         try {
@@ -58,31 +63,24 @@ public class ClearLag {
             throw new RuntimeException("ClearLag log init failed", e);
         }
 
-        setupDefaults();
         loadConfig();
         if (enabled) start();
     }
 
-    private void setupDefaults() {
-        plugin.getConfig().addDefault("clearlag.enabled", true);
-        plugin.getConfig().addDefault("clearlag.interval-seconds", 600);
-        plugin.getConfig().addDefault("clearlag.warning-seconds", 30);
-        plugin.getConfig().addDefault("clearlag.blocklist", Collections.emptyList());
-        plugin.getConfig().options().copyDefaults(true);
-        plugin.saveConfig();
-    }
-
     public synchronized void loadConfig() {
-        this.enabled = plugin.getConfig().getBoolean("clearlag.enabled", true);
-        this.intervalSeconds = plugin.getConfig().getInt("clearlag.interval-seconds", 600);
-        this.warningSeconds = plugin.getConfig().getInt("clearlag.warning-seconds", 30);
-        List<String> raw = plugin.getConfig().getStringList("clearlag.blocklist");
+        this.enabled = cfg.isClearlagEnabled();
+        this.intervalSeconds = cfg.getClearlagIntervalSeconds();
+        this.warningSeconds = cfg.getClearlagWarningSeconds();
+
+        List<String> raw = cfg.getClearlagBlocklist();
         Set<Material> parsed = new HashSet<>();
-        for (String s : raw) {
-            if (s == null) continue;
-            Material m = Material.matchMaterial(s.trim().toUpperCase(Locale.ROOT));
-            if (m != null) parsed.add(m);
-            else logger.warning("ClearLag: unknown material in blocklist: " + s);
+        if (raw != null) {
+            for (String s : raw) {
+                if (s == null) continue;
+                Material m = Material.matchMaterial(s.trim().toUpperCase(Locale.ROOT));
+                if (m != null) parsed.add(m);
+                else logger.warning("ClearLag: unknown material in blocklist: " + s);
+            }
         }
         this.blocklistMaterials = Collections.unmodifiableSet(parsed);
     }
@@ -105,19 +103,16 @@ public class ClearLag {
         }
         sequenceRunning = true;
 
-        // Cancel any previous countdown (shouldn't normally exist)
         if (countdownTask != null) {
             countdownTask.cancel();
             countdownTask = null;
         }
 
-        // Start a per-second countdown for warningSeconds
         new BukkitRunnable() {
             int secondsLeft = warningSeconds;
 
             @Override
             public void run() {
-                // Broadcast at full-minute marks (e.g., 60, 120...) and every second during last 10s
                 if (secondsLeft == warningSeconds || secondsLeft <= 10 || secondsLeft % 60 == 0) {
                     String msg = ChatColor.GOLD + "[ClearLag] " + ChatColor.YELLOW + "Items will be removed in "
                             + ChatColor.RED + ChatColor.BOLD + secondsLeft + ChatColor.RESET + ChatColor.YELLOW + " seconds.";
@@ -126,7 +121,6 @@ public class ClearLag {
                 }
 
                 if (secondsLeft <= 0) {
-                    // perform clear immediately on the next tick
                     int removed = performClearAndLog();
                     Bukkit.broadcastMessage(ChatColor.GOLD + "[ClearLag] " + ChatColor.GREEN + "Removed " + ChatColor.WHITE + removed + ChatColor.GREEN + " dropped items.");
                     sequenceRunning = false;
@@ -137,19 +131,11 @@ public class ClearLag {
         }.runTaskTimer(plugin, 0L, 20L);
     }
 
-    /**
-     * Performs the actual removal of dropped item entities, collecting ItemStacks before removal,
-     * respecting the blocklist. Logs summary and a detailed list (limited) to both plugin logger
-     * and `clearlag.log`.
-     *
-     * @return number of items removed
-     */
     private int performClearAndLog() {
         List<ItemStack> removedItems = new ArrayList<>();
         int removed = 0;
         try {
             for (World world : Bukkit.getWorlds()) {
-                // copy list to avoid concurrent-modification
                 for (Entity ent : new ArrayList<>(world.getEntities())) {
                     try {
                         if (!(ent instanceof Item)) continue;
@@ -175,7 +161,6 @@ public class ClearLag {
             logger.info(summary);
             writeLog(summary);
 
-            // detailed list (limit)
             if (!removedItems.isEmpty()) {
                 int limit = 100;
                 List<String> formatted = removedItems.stream()
@@ -208,7 +193,6 @@ public class ClearLag {
 
     public synchronized void reload() {
         stop();
-        plugin.reloadConfig();
         loadConfig();
         if (enabled) start();
     }
@@ -224,8 +208,6 @@ public class ClearLag {
     public Set<Material> getBlocklistMaterials() {
         return blocklistMaterials;
     }
-
-    // --- Helpers: formatting and safe log write ---
 
     private String formatItem(ItemStack item) {
         if (item == null) return "null";

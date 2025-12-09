@@ -38,8 +38,8 @@ chat-filter:
 
   # Per-word punishments (override default)
   punishments:
-    fuck: "BLOCK"
-    bitch: "MUTE"
+   # fuck: "BLOCK"
+   # bitch: "MUTE"
 
   # Ban reason used when auto-banning
   ban-reason: "Forbidden language"
@@ -96,6 +96,7 @@ clearlag:
 #  GUNPOWDER / PARTICLES (easy tuning for visuals & fuse speed)
 # ============================================================
 gunpowder:
+  enabled: true
   particles:
     # How often (ticks) ambient particles run per placed powder (smaller = smoother)
     ambient-interval-ticks: 10
@@ -128,7 +129,15 @@ gunpowder:
   # Tick interval used when propagating the fuse (smaller = faster propagation)
   fuse-step-ticks: 3
 
+
+# CoinFlip Settings
+coinflip:
+  enabled: true
+  timeout-seconds: 60      # Time for a player to accept a coinflip
+  min-amount: 10            # Minimum amount of coins to bet
+  max-amount: 100000        # Maximum amount of coins to bet
+
 # ============================================================
 #  INTERNAL VERSION (do not modify unless you know what you're doing)
 # ============================================================
-config-version: 4
+config-version: 5

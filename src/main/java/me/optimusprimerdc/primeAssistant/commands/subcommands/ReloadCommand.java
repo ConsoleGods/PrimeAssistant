@@ -22,7 +22,8 @@ public class ReloadCommand {
         }
 
         try {
-            plugin.reloadConfig();
+            // Use the central reload so all subsystems (e.g. gunpowder) are updated
+            plugin.reloadPluginConfig();
 
             if (plugin.getChatFiltering() != null) {
                 plugin.getChatFiltering().reload();
@@ -33,7 +34,7 @@ public class ReloadCommand {
             return true;
         } catch (Exception e) {
             sender.sendMessage(prefix + ChatColor.RED + "Failed to reload configuration. Check console for errors.");
-            plugin.getLogger().severe("Error reloading config: " + e.getMessage());
+            plugin.getLogger().log(java.util.logging.Level.SEVERE, "Error reloading config", e);
             return true;
         }
     }

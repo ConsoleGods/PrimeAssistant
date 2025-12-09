@@ -5,7 +5,10 @@ plugins {
 }
 
 group = 'me.optimusprimerdc'
-version = '1.0.9'
+version = '1.0.10'
+
+def worldguardVersion = '7.0.14'
+def worldeditVersion  = '7.3.17'
 
 repositories {
     mavenCentral()
@@ -13,10 +16,18 @@ repositories {
         name = "spigotmc-repo"
         url = "https://hub.spigotmc.org/nexus/content/repositories/snapshots/"
     }
+    maven {
+        name = "enginehub"
+        url = "https://maven.enginehub.org/repo/"
+    }
+    maven { url 'https://jitpack.io' }
 }
 
 dependencies {
     compileOnly("org.spigotmc:spigot-api:1.21.8-R0.1-SNAPSHOT")
+    compileOnly("com.sk89q.worldedit:worldedit-bukkit:${worldeditVersion}")
+    compileOnly("com.sk89q.worldguard:worldguard-bukkit:${worldguardVersion}")
+    compileOnly("com.github.MilkBowl:VaultAPI:1.7")
     implementation 'com.google.code.gson:gson:2.10.1'
 }
 

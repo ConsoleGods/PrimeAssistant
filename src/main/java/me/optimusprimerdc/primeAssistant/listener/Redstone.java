@@ -1,6 +1,7 @@
 package me.optimusprimerdc.primeAssistant.listener;
 
 import me.optimusprimerdc.primeAssistant.PrimeAssistant;
+import me.optimusprimerdc.primeAssistant.config.ConfigManager;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Chunk;
@@ -16,8 +17,9 @@ import java.util.*;
 public class Redstone implements Listener {
 
     private final PrimeAssistant plugin;
-    private final double tpsThreshold;
-    private final boolean enablePurge;
+    private final ConfigManager cfg;
+    private double tpsThreshold;
+    private boolean enablePurge;
     private boolean redstoneDisabled = false;
     private final Map<String, Integer> chunkRedstoneEvents = new HashMap<>();
     private final Set<Material> redstoneBlocks = EnumSet.of(
@@ -27,14 +29,23 @@ public class Redstone implements Listener {
             Material.DISPENSER, Material.DROPPER, Material.HOPPER
     );
 
-    public Redstone(PrimeAssistant plugin, double tpsThreshold, boolean enablePurge) {
+    public Redstone(PrimeAssistant plugin) {
         this.plugin = plugin;
-        this.tpsThreshold = tpsThreshold;
-        this.enablePurge = enablePurge;
+        this.cfg = plugin.getConfigManager();
+        loadConfig();
         startTPSMonitor();
         if (enablePurge) {
             startChunkMonitor();
         }
+    }
+
+    public void reload() {
+        loadConfig();
+    }
+
+    private void loadConfig() {
+        this.tpsThreshold = cfg.getRedstoneTpsThreshold(); // expected to exist in ConfigManager
+        this.enablePurge = cfg.isRedstonePurgeEnabled();
     }
 
     private void startTPSMonitor() {
@@ -129,5 +140,4 @@ public class Redstone implements Listener {
             return 20.0;
         }
     }
-
 }

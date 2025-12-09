@@ -1,5 +1,7 @@
 package me.optimusprimerdc.primeAssistant.listener;
 
+import me.optimusprimerdc.primeAssistant.PrimeAssistant;
+import me.optimusprimerdc.primeAssistant.config.ConfigManager;
 import org.bukkit.ChatColor;
 import org.bukkit.entity.EnderPearl;
 import org.bukkit.entity.Player;
@@ -8,7 +10,6 @@ import org.bukkit.event.Listener;
 import org.bukkit.event.entity.ProjectileLaunchEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.metadata.FixedMetadataValue;
-import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
@@ -24,7 +25,8 @@ public class AntiStasisEnderPearl implements Listener {
 
     private static final String META_KEY = "primeassistant_lastPearl";
 
-    private final JavaPlugin plugin;
+    private final PrimeAssistant plugin;
+    private final ConfigManager cfg;
     private final Map<UUID, Deque<Long>> lastPearlQueues = new ConcurrentHashMap<>();
 
     private long timeoutMillis;
@@ -32,8 +34,9 @@ public class AntiStasisEnderPearl implements Listener {
     private boolean debug;
     private String cancelMessage;
 
-    public AntiStasisEnderPearl(JavaPlugin plugin) {
+    public AntiStasisEnderPearl(PrimeAssistant plugin) {
         this.plugin = plugin;
+        this.cfg = plugin.getConfigManager();
         reloadConfigValues();
     }
 
@@ -42,19 +45,10 @@ public class AntiStasisEnderPearl implements Listener {
     }
 
     public void reloadConfigValues() {
-        if (plugin.getConfig().contains("anti-stasis.enabled")) {
-            this.enabled = plugin.getConfig().getBoolean("anti-stasis.enabled", true);
-            this.timeoutMillis = Math.max(0, plugin.getConfig().getInt("anti-stasis.timeout-seconds", 30)) * 1000L;
-            this.cancelMessage = ChatColor.translateAlternateColorCodes('&',
-                    plugin.getConfig().getString("anti-stasis.messages.cancel", "&cStasis pearls are not allowed."));
-            this.debug = plugin.getConfig().getBoolean("anti-stasis.debug", false);
-        } else {
-            this.enabled = plugin.getConfig().getBoolean("enabled", true);
-            this.timeoutMillis = Math.max(0, plugin.getConfig().getInt("timeout-seconds", 30)) * 1000L;
-            this.cancelMessage = ChatColor.translateAlternateColorCodes('&',
-                    plugin.getConfig().getString("messages.cancel", "&cStasis pearls are not allowed."));
-            this.debug = plugin.getConfig().getBoolean("debug", false);
-        }
+        this.enabled = cfg.isAntiStasisEnabled();
+        this.timeoutMillis = Math.max(0, cfg.getAntiStasisTimeoutSeconds()) * 1000L;
+        this.cancelMessage = ChatColor.translateAlternateColorCodes('&', cfg.getAntiStasisCancelMessage());
+        this.debug = cfg.isAntiStasisDebug();
 
         if (debug) {
             plugin.getLogger().info("AntiStasis: enabled=" + enabled + " timeoutMs=" + timeoutMillis + " cancelMsg=" + cancelMessage);
